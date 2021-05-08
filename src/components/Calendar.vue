@@ -13,6 +13,13 @@
         item.date.toLocaleDateString()
       }}</span>
     </div>
+    <div v-if="errMsg">{{ errMsg }}</div>
+    <div class="lds-ellipsis" v-if="isLoading">
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
   </div>
 </template>
 
@@ -24,6 +31,8 @@ export default {
   data() {
     return {
       dates: [],
+      errMsg: "",
+      isLoading: true,
     };
   },
   methods: {
@@ -33,6 +42,8 @@ export default {
       }
     },
     getLastDates(date) {
+      this.isLoading = true;
+      let promises = [];
       for (let i = 1; i < 8; i++) {
         let newDate = new Date(date.getTime());
         newDate.setDate(date.getDate() - i);
@@ -41,8 +52,36 @@ export default {
           newDate.toLocaleDateString().split(".").reverse().join("-") +
           "/GoogleMapsCompatible_Level9/0/0/0.jpg";
 
-        this.dates.push({ date: newDate, src });
+        const promise = this.getPreview(newDate, src);
+        promises.push(promise);
       }
+
+      Promise.all(promises)
+        .then((data) => {
+          data.forEach((date) => {
+            if (!this.dates.find((item) => item.src === date.src)) {
+              this.dates.push(date);
+            }
+          });
+        })
+        .catch(() => {
+          this.errMsg = "Загрузка не удалась. Обновите страницу";
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    },
+    getPreview(date, src) {
+      return fetch(src)
+        .then((res) => {
+          if (!res.ok) {
+            throw res;
+          }
+          return res;
+        })
+        .then((data) => {
+          return { date, src: data.url };
+        });
     },
     handleClick(date, index) {
       this.$emit("handleAddDay", date);
@@ -102,6 +141,62 @@ export default {
   &::-webkit-scrollbar-thumb {
     background: #787878;
     border: 1px solid #000;
+  }
+}
+
+.lds-ellipsis {
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+.lds-ellipsis div {
+  position: absolute;
+  top: 33px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+.lds-ellipsis div:nth-child(1) {
+  left: 8px;
+  animation: lds-ellipsis1 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(2) {
+  left: 8px;
+  animation: lds-ellipsis2 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(3) {
+  left: 32px;
+  animation: lds-ellipsis2 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(4) {
+  left: 56px;
+  animation: lds-ellipsis3 0.6s infinite;
+}
+@keyframes lds-ellipsis1 {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes lds-ellipsis3 {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+@keyframes lds-ellipsis2 {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(24px, 0);
   }
 }
 </style>
