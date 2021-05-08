@@ -24,8 +24,6 @@
 </template>
 
 <script>
-/* eslint-disable no-debugger */
-/* eslint-disable no-unused-vars */
 export default {
   name: "Calendar",
   data() {
